@@ -36,6 +36,13 @@
     <meta name="format-detection" content="telephone=no" />
 
     <title>Navstar Digital Hub | Courses and Digital Services</title>
+    <script>
+      const requestedPath = new URLSearchParams(window.location.search).get("p");
+      if (requestedPath) {
+        const path = requestedPath.replace(/^\//, "");
+        window.history.replaceState(null, "", `/Navstar-Digital-Hub-Site/${path}`);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
