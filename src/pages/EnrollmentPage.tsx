@@ -1,299 +1,159 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { INITIAL_COURSES } from '@/data/courses';
-import { Course } from '@/types';
+import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { AlertCircle, ArrowLeft, CheckCircle2, ShieldCheck, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { CheckCircle2, QrCode, Phone, Smartphone, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { INITIAL_COURSES } from '@/data/courses';
+import type { Course } from '@/types';
+
+const apiBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
 export function EnrollmentPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-  });
+  const [registrationId, setRegistrationId] = useState('');
+  const [phone, setPhone] = useState('');
+  const [status, setStatus] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const found = INITIAL_COURSES.find(c => c.id === id);
-    if (found) {
-      setCourse(found);
-    } else {
-      navigate('/courses');
-    }
+    const found = INITIAL_COURSES.find((item) => item.id === id);
+    if (found) setCourse(found);
+    else navigate('/courses', { replace: true });
   }, [id, navigate]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleNext = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email || !formData.phone) {
-      toast.error('Please fill in all fields');
+  const submitApplication = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const normalizedPhone = String(formData.get('phone') ?? '').replace(/[\s-]/g, '');
+    if (!/^(?:\+?254|0)?[17]\d{8}$/.test(normalizedPhone)) {
+      setStatus('Enter a valid Kenyan mobile number to continue.');
       return;
     }
-    setStep(2);
+    if (!course) return;
+    setPhone(normalizedPhone);
+    if (!apiBase) {
+      setStatus('Preview only: the application was not sent or stored. Connect a secure school backend before collecting real student information.');
+      return;
+    }
+
+    setLoading(true);
+    setStatus('');
+    try {
+      const response = await fetch(`${apiBase.replace(/\/$/, '')}/api/enrollments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...Object.fromEntries(formData.entries()),
+          phone: normalizedPhone,
+          courseId: course.id,
+          courseTitle: course.title,
+        }),
+      });
+      if (!response.ok) throw new Error('The application could not be submitted. Please contact admissions.');
+      const result = await response.json() as { id?: string };
+      setRegistrationId(result.id ?? 'Submitted');
+      setStatus('Application submitted securely. You can now request an M-Pesa payment prompt.');
+      form.reset();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'The application could not be submitted.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
-
-  const handlePayment = () => {
-    setPaymentLoading(true);
-    // Simulate STK Push or payment verification
-    setTimeout(() => {
-      setPaymentLoading(false);
-      setPaymentConfirmed(true);
-      toast.success('Payment Received Successfully!');
-      
-      // Save enrollment to local storage for admin demo
-      const enrollments = JSON.parse(localStorage.getItem('enrollments') || '[]');
-      enrollments.push({
-        id: Math.random().toString(36).substr(2, 9),
-        studentName: formData.name,
-        studentEmail: formData.email,
-        studentPhone: formData.phone,
-        courseId: course?.id,
-        courseTitle: course?.title,
-        amount: course?.price,
-        paymentStatus: 'paid',
-        enrollmentDate: new Date().toISOString()
+  const requestPayment = async () => {
+    if (!apiBase || !registrationId || !course) return;
+    setLoading(true);
+    setStatus('');
+    try {
+      const response = await fetch(`${apiBase.replace(/\/$/, '')}/api/payments/stk-push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, amount: course.price, purpose: 'enrollment', reference: registrationId }),
       });
-      localStorage.setItem('enrollments', JSON.stringify(enrollments));
-    }, 3000);
+      if (!response.ok) throw new Error('The payment prompt could not be requested. Please contact the school.');
+      setStatus('Payment prompt sent. Approve it on your phone. Payment status will update after provider confirmation.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'The payment prompt could not be requested.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!course) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="mb-8 flex items-center justify-between">
+    <main className="min-h-screen bg-slate-50 py-8 sm:py-12">
+      <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <Link to="/courses" className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950"><ArrowLeft className="h-4 w-4" /> Courses</Link>
+        <div className="mb-8 mt-5 flex flex-col justify-between gap-4 border-b pb-6 sm:flex-row sm:items-end">
           <div>
-            <h1 className="text-3xl font-bold">Enrollment</h1>
-            <p className="text-slate-600">Complete the form below to secure your spot in {course.title}</p>
+            <p className="text-xs font-bold uppercase text-emerald-800">NAVSTAR DIGITAL HUB / ADMISSIONS</p>
+            <h1 className="mt-2 text-3xl font-bold text-slate-950">Student application</h1>
+            <p className="mt-2 text-slate-600">Complete the details for {course.title}. Required fields are marked.</p>
           </div>
-          <div className="flex gap-2">
-            {[1, 2, 3].map(i => (
-              <div
-                key={i}
-                className={`h-2 w-12 rounded-full ${
-                  step >= i ? 'bg-primary' : 'bg-slate-200'
-                }`}
-              />
-            ))}
-          </div>
+          <span className="w-fit border bg-white px-3 py-2 text-sm font-semibold text-slate-700">Application · 01</span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <AnimatePresence mode="wait">
-              {step === 1 && (
-                <motion.div
-                  key="step1"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Personal Information</CardTitle>
-                      <CardDescription>Enter your details as they should appear on your certificate.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={handleNext} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name">Full Name</Label>
-                          <Input
-                            id="name"
-                            name="name"
-                            placeholder="John Doe"
-                            value={formData.name}
-                            onChange={handleInputChange}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email Address</Label>
-                          <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            placeholder="john@example.com"
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="phone">Phone Number (M-Pesa)</Label>
-                          <Input
-                            id="phone"
-                            name="phone"
-                            placeholder="0700 000 000"
-                            value={formData.phone}
-                            onChange={handleInputChange}
-                            required
-                          />
-                        </div>
-                        <Button type="submit" className="w-full mt-6">
-                          Proceed to Payment
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-
-              {step === 2 && !paymentConfirmed && (
-                <motion.div
-                  key="step2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <Card className="border-primary/50 ring-1 ring-primary/20">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Smartphone className="h-5 w-5 text-primary" />
-                        Online Payment (M-Pesa)
-                      </CardTitle>
-                      <CardDescription>Pay directly to navstAR DIGITAL HUB Till</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="bg-slate-100 p-6 rounded-xl text-center space-y-2">
-                        <p className="text-sm text-slate-500 font-medium">LIPA NA M-PESA TILL NUMBER</p>
-                        <p className="text-4xl font-black text-slate-900 tracking-widest">456 789</p>
-                        <p className="text-sm font-semibold text-primary">navstAR DIGITAL HUB</p>
-                      </div>
-
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-sm uppercase text-slate-500">How to pay:</h4>
-                        <ol className="text-sm space-y-3 list-decimal list-inside text-slate-700">
-                          <li>Go to M-Pesa menu on your phone</li>
-                          <li>Select <strong>Lipa Na M-Pesa</strong></li>
-                          <li>Select <strong>Buy Goods and Services</strong></li>
-                          <li>Enter Till Number: <strong>456 789</strong></li>
-                          <li>Enter Amount: <strong>KSh {course.price.toLocaleString()}</strong></li>
-                          <li>Enter your M-Pesa PIN and confirm</li>
-                        </ol>
-                      </div>
-
-                      <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-lg text-amber-800 text-sm">
-                        <AlertCircle className="h-5 w-5 shrink-0" />
-                        <p>After paying, click the button below. We will verify your transaction automatically using your phone number <strong>{formData.phone}</strong>.</p>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex-col gap-3">
-                      <Button 
-                        onClick={handlePayment} 
-                        className="w-full h-12 text-lg font-bold" 
-                        disabled={paymentLoading}
-                      >
-                        {paymentLoading ? (
-                          <span className="flex items-center gap-2">
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            Verifying Transaction...
-                          </span>
-                        ) : 'I Have Paid'}
-                      </Button>
-                      <Button variant="ghost" onClick={() => setStep(1)} disabled={paymentLoading}>
-                        Go Back
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </motion.div>
-              )}
-
-              {paymentConfirmed && (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-12 px-6"
-                >
-                  <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                    <CheckCircle2 className="h-10 w-10 text-green-600" />
-                  </div>
-                  <h2 className="text-3xl font-bold mb-2">Enrollment Confirmed!</h2>
-                  <p className="text-slate-600 mb-8 max-w-md mx-auto">
-                    Thank you {formData.name}! You have successfully enrolled in <strong>{course.title}</strong>. 
-                    A confirmation email has been sent to {formData.email}.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Button onClick={() => navigate('/')}>Return Home</Button>
-                    <Button variant="outline" onClick={() => navigate('/courses')}>Browse More Courses</Button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="lg:col-span-1">
-            <Card className="sticky top-24">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="aspect-video rounded-lg overflow-hidden">
-                  <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <h4 className="font-bold">{course.title}</h4>
-                  <p className="text-sm text-slate-500">{course.duration} Duration</p>
-                </div>
-                <div className="border-t pt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Course Fee</span>
-                    <span className="font-medium">KSh {course.price.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Registration</span>
-                    <span className="font-medium text-green-600">FREE</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2 mt-2">
-                    <span className="font-bold">Total Amount</span>
-                    <span className="font-bold text-primary text-xl">KSh {course.price.toLocaleString()}</span>
-                  </div>
-                </div>
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <form onSubmit={submitApplication} className="space-y-6">
+            <Card>
+              <CardHeader><CardTitle>Personal details</CardTitle><CardDescription>Use the contact details you want admissions to use.</CardDescription></CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2"><Label htmlFor="full-name">Full legal name *</Label><Input id="full-name" name="fullName" autoComplete="name" required /></div>
+                <div className="space-y-2"><Label htmlFor="email">Email address *</Label><Input id="email" name="email" type="email" autoComplete="email" required /></div>
+                <div className="space-y-2"><Label htmlFor="phone">M-Pesa phone number *</Label><Input id="phone" name="phone" inputMode="tel" autoComplete="tel" placeholder="07xx xxx xxx" required /></div>
+                <div className="space-y-2"><Label htmlFor="birth-date">Date of birth *</Label><Input id="birth-date" name="dateOfBirth" type="date" required /></div>
+                <div className="space-y-2"><Label htmlFor="national-id">National ID or passport</Label><Input id="national-id" name="identityNumber" autoComplete="off" /></div>
+                <div className="space-y-2"><Label htmlFor="gender">Gender</Label><select id="gender" name="gender" className="h-10 w-full border border-slate-300 bg-white px-3 text-sm"><option value="">Prefer not to say</option><option>Female</option><option>Male</option><option>Another identity</option></select></div>
+                <div className="space-y-2"><Label htmlFor="nationality">Nationality</Label><Input id="nationality" name="nationality" autoComplete="country-name" /></div>
               </CardContent>
-              <CardFooter className="bg-slate-50 text-xs text-slate-500 flex items-center gap-2 rounded-b-xl border-t">
-                <ShieldCheck className="h-4 w-4" />
-                Secure Payment Powered by M-Pesa
-              </CardFooter>
             </Card>
-          </div>
+
+            <Card>
+              <CardHeader><CardTitle>Course and education</CardTitle><CardDescription>Tell admissions how you plan to study.</CardDescription></CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2"><Label htmlFor="course-title">Selected course</Label><Input id="course-title" value={course.title} readOnly /></div>
+                <div className="space-y-2"><Label htmlFor="study-mode">Study mode *</Label><select id="study-mode" name="studyMode" required className="h-10 w-full border border-slate-300 bg-white px-3 text-sm"><option value="">Select mode</option><option>On campus</option><option>Online</option><option>Hybrid</option></select></div>
+                <div className="space-y-2"><Label htmlFor="education-level">Highest education level *</Label><select id="education-level" name="educationLevel" required className="h-10 w-full border border-slate-300 bg-white px-3 text-sm"><option value="">Select level</option><option>Primary</option><option>Secondary</option><option>Certificate</option><option>Diploma</option><option>Degree or higher</option></select></div>
+                <div className="space-y-2"><Label htmlFor="intake">Preferred intake</Label><Input id="intake" name="preferredIntake" type="month" /></div>
+                <div className="space-y-2 sm:col-span-2"><Label htmlFor="experience">Relevant experience or learning goals</Label><textarea id="experience" name="experience" rows={3} className="w-full border border-slate-300 bg-white px-3 py-2 text-sm" placeholder="Share anything that will help us support your learning." /></div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Address and emergency contact</CardTitle><CardDescription>Use a trusted contact who can be reached if needed.</CardDescription></CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2"><Label htmlFor="county">County *</Label><Input id="county" name="county" autoComplete="address-level1" required /></div>
+                <div className="space-y-2"><Label htmlFor="town">Town or area *</Label><Input id="town" name="town" autoComplete="address-level2" required /></div>
+                <div className="space-y-2"><Label htmlFor="address">Postal or physical address</Label><Input id="address" name="address" autoComplete="street-address" /></div>
+                <div className="space-y-2"><Label htmlFor="emergency-name">Emergency contact name *</Label><Input id="emergency-name" name="emergencyContactName" required /></div>
+                <div className="space-y-2"><Label htmlFor="emergency-phone">Emergency contact phone *</Label><Input id="emergency-phone" name="emergencyContactPhone" inputMode="tel" required /></div>
+                <div className="space-y-2"><Label htmlFor="relationship">Relationship</Label><Input id="relationship" name="emergencyContactRelationship" /></div>
+                <div className="space-y-2 sm:col-span-2"><Label htmlFor="support-needs">Accessibility or learning support needs</Label><textarea id="support-needs" name="supportNeeds" rows={3} className="w-full border border-slate-300 bg-white px-3 py-2 text-sm" /></div>
+              </CardContent>
+            </Card>
+
+            <label className="flex items-start gap-3 border bg-white p-4 text-sm leading-6 text-slate-700"><input type="checkbox" name="consent" required className="mt-1 accent-emerald-800" /><span>I agree that admissions may contact me about this application and confirm that the information provided is accurate.</span></label>
+            <Button className="w-full bg-emerald-800 hover:bg-emerald-900 sm:w-auto" type="submit" disabled={loading}>{loading ? 'Submitting…' : 'Submit application'}</Button>
+            {status && <p role="status" className="border bg-white p-4 text-sm text-slate-700">{status}</p>}
+            {registrationId && <Card className="border-emerald-200"><CardHeader><CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-700" />Application received</CardTitle><CardDescription>Reference: {registrationId}</CardDescription></CardHeader><CardContent><Button type="button" className="bg-emerald-800 hover:bg-emerald-900" onClick={requestPayment} disabled={!apiBase || loading}>{apiBase ? 'Request M-Pesa prompt' : 'Payment backend required'}</Button></CardContent></Card>}
+          </form>
+
+          <aside className="space-y-4 lg:sticky lg:top-24">
+            <Card><CardHeader><CardTitle className="text-lg">Application summary</CardTitle></CardHeader><CardContent className="space-y-4"><div className="aspect-video overflow-hidden bg-slate-100"><img src={course.image} alt={course.title} className="h-full w-full object-cover" /></div><div><h2 className="font-bold text-slate-950">{course.title}</h2><p className="mt-1 text-sm text-slate-500">{course.duration} · {course.category}</p></div><div className="flex justify-between border-t pt-4 text-sm"><span className="text-slate-600">Course fee</span><strong>KSh {course.price.toLocaleString()}</strong></div><p className="text-xs leading-5 text-slate-500">Fees are shown for planning. Payment is not marked received until the provider confirms it.</p></CardContent></Card>
+            <div className="border-l-2 border-emerald-700 bg-white p-4 text-sm text-slate-700"><div className="flex items-center gap-2 font-semibold"><Smartphone className="h-4 w-4 text-emerald-800" />M-Pesa safety</div><p className="mt-2 leading-5">A prompt can only be sent by a configured secure backend. Enter your PIN only on the official prompt on your phone.</p></div>
+            <div className="flex items-start gap-2 text-xs leading-5 text-slate-500"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />Do not submit real identity details on this preview site until secure student records are connected.</div>
+            <div className="flex items-start gap-2 text-xs text-slate-500"><ShieldCheck className="h-4 w-4 shrink-0" />Student information must be stored server-side with access controls.</div>
+          </aside>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ShieldCheck(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
+    </main>
   );
 }

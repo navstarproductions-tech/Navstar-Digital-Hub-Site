@@ -1,120 +1,38 @@
-# React + Vite + shadcn/ui Starter Template
+# NAVSTAR DIGITAL HUB
 
-A modern React starter template built with Vite, TypeScript, Tailwind CSS, and shadcn/ui components.
+Public site for NAVSTAR DIGITAL HUB, with course listings, cyber services, admissions, donations, and role-based portal previews.
 
-## 🚀 Features
+## Run locally
 
-- ⚡️ **Vite** - Fast build tool and development server
-- ⚛️ **React 18** - Latest React with hooks support
-- 🎯 **TypeScript** - Type safety and better developer experience
-- 🎨 **Tailwind CSS** - Utility-first CSS framework
-- 🧩 **shadcn/ui** - Beautifully designed components built with Radix UI
-- 📦 **Path Mapping** - Clean imports with `@/` prefix
-
-## 📦 Included shadcn/ui Components
-
-- Button
-- Card
-- Input
-- Label
-- Badge
-- Dialog
-- And more...
-
-## 🛠️ Getting Started
-
-1. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-2. **Start development server**
-
-   ```bash
-   npm run dev
-   ```
-
-3. **Build for production**
-
-   ```bash
-   npm run build
-   ```
-
-4. **Preview production build**
-   ```bash
-   npm run preview
-   ```
-
-## 📁 Project Structure
-
-```
-src/
-├── components/
-│   └── ui/              # shadcn/ui components
-├── lib/
-│   └── utils.ts         # Utility functions
-├── App.tsx              # Main application component
-├── index.css            # Global styles with Tailwind
-└── main.tsx             # Application entry point
+```powershell
+npm install
+npm run dev
 ```
 
-## 🎨 Customization
+Create a production build with `npm run build`. Preview the output with `npm run preview`.
 
-### Adding New shadcn/ui Components
+## Pages
 
-This template is pre-configured with shadcn/ui. You can add more components by creating them in the `src/components/ui/` directory.
+- Home, Courses, Services, and Donations are public pages.
+- Student, Tutor, Admissions, Principal, and Admin portals currently show preview screens.
+- Enrollment collects an application draft and displays the selected course summary.
+- Admin provides local previews for courses, services, gallery images, notifications, and settings.
 
-### Tailwind Configuration
+## Backend required for production operations
 
-The Tailwind configuration is set up with shadcn/ui color variables. You can customize colors and other design tokens in:
+GitHub Pages is static hosting. Sign-in, student records, publishing admin changes, payment prompts, transaction validation, notifications, and cashouts require a separately hosted API with authentication, authorization, input validation, and audit logging.
 
-- `tailwind.config.js` - Tailwind configuration
-- `src/index.css` - CSS custom properties for themes
+The frontend reads the API origin from `VITE_API_BASE_URL`. It expects these server routes when configured:
 
-### TypeScript Configuration
+- `POST /api/auth/login`
+- `POST /api/enrollments`
+- `POST /api/payments/stk-push`
+- `POST /api/admin/cashouts`
 
-Path mapping is configured for clean imports:
+Do not put Daraja credentials in frontend variables, source files, or GitHub Pages. Keep consumer secrets and passkeys in the backend host's secret store, verify provider callbacks server-side, and require role-based authorization for admin and financial actions. Users must enter their M-Pesa PIN only on the official phone prompt, never on this website.
 
-```typescript
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-```
+Production Daraja credentials were pasted into a chat. Revoke and rotate them before connecting a payment backend.
 
-## 🌗 Dark Mode
+## GitHub Pages
 
-The template includes dark mode support through Tailwind's `dark:` classes and CSS custom properties.
-
-## 📚 Learn More
-
-- [Vite Documentation](https://vitejs.dev/)
-- [React Documentation](https://react.dev/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [shadcn/ui](https://ui.shadcn.com/)
-- [Radix UI](https://www.radix-ui.com/)
-
-## 🤝 Contributing
-
-Feel free to submit issues and enhancement requests!
-
-**⚡ Powered by [Dala](https://dala.gebeya.com)** - The AI-powered web development platform that helps you build full-stack applications faster.
-
----
-
-## 🤖 What is Dala?
-
-**[Gebeya Dala](https://dala.gebeya.com)** is an intelligent web development platform that accelerates your React development workflow. Build, preview, and deploy web applications, and instant development environments.
-
-🔗 **Try Dala:** [dala.gebeya.com](https://dala.gebeya.com)
-
-### Why Use Dala?
-
-- **AI-Powered Development** - Get intelligent code suggestions and automated component generation
-- **Instant Preview** - See your changes live in real-time sandbox environments
-- **Zero Setup** - No local environment configuration needed
-- **Collaborative** - Build and share projects with your team
-- **Deployment Ready** - One-click deployment to production
-
----
-
-Built with ❤️ by the Dala team to help developers build faster and smarter.
+GitHub Actions builds `dist` and deploys it to the Pages environment. The configured project base path is `/Navstar-Digital-Hub-Site/`.

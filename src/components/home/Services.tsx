@@ -1,5 +1,6 @@
 import { Monitor, Wifi, Printer, ShieldCheck, GraduationCap, Cpu } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 
 const services = [
   {
@@ -64,7 +65,7 @@ export function Services() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <button className="text-primary font-medium text-sm hover:underline">Learn more &rarr;</button>
+                <Link to="/services" className="text-sm font-semibold text-emerald-800 hover:underline">View service details</Link>
               </CardContent>
             </Card>
           ))}

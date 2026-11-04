@@ -9,7 +9,7 @@ export function Footer() {
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex items-center gap-2 text-white">
               <Monitor className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold tracking-tight">navstAR DIGITAL HUB</span>
+              <span className="text-xl font-bold tracking-tight">NAVSTAR DIGITAL HUB</span>
             </Link>
             <p className="mt-4 text-sm leading-6">
               Empowering the next generation of digital professionals through quality education and accessible technology services.
@@ -26,8 +26,9 @@ export function Footer() {
             <ul className="mt-4 space-y-2">
               <li><Link to="/" className="text-sm hover:text-white transition-colors">Home</Link></li>
               <li><Link to="/courses" className="text-sm hover:text-white transition-colors">Browse Courses</Link></li>
-              <li><Link to="/about" className="text-sm hover:text-white transition-colors">About Us</Link></li>
-              <li><Link to="/admin" className="text-sm hover:text-white transition-colors">Admin Portal</Link></li>
+              <li><Link to="/services" className="text-sm hover:text-white transition-colors">Services</Link></li>
+              <li><Link to="/donations" className="text-sm hover:text-white transition-colors">Donations</Link></li>
+              <li><Link to="/portals" className="text-sm hover:text-white transition-colors">Portals</Link></li>
             </ul>
           </div>
 
@@ -61,7 +62,7 @@ export function Footer() {
         </div>
         
         <div className="mt-12 border-t border-slate-800 pt-8 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} navstAR DIGITAL HUB. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} NAVSTAR DIGITAL HUB. All rights reserved.</p>
         </div>
       </div>
     </footer>

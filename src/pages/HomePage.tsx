@@ -32,7 +32,7 @@ export function HomePage() {
             
             <div>
               <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl mb-6">
-                Why Choose navstAR DIGITAL HUB?
+                Why Choose NAVSTAR DIGITAL HUB?
               </h2>
               <p className="text-lg text-slate-600 mb-8">
                 We bridge the digital divide by providing affordable, high-quality computer education and essential cyber services to our community.
@@ -53,7 +53,7 @@ export function HomePage() {
               </ul>
               
               <Button asChild size="lg">
-                <Link to="/about">Learn Our Story <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/services">Explore Our Services <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
             </div>
           </div>

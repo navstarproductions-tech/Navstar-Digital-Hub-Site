@@ -23,14 +23,14 @@ export function Hero() {
           className="max-w-2xl"
         >
           <div className="inline-flex items-center rounded-full bg-primary/20 px-3 py-1 text-sm font-medium text-primary ring-1 ring-inset ring-primary/20">
-            <span className="mr-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">New</span>
-            Enrollment for 2024 is now open!
+            <span className="mr-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">NAVSTAR</span>
+            Computer training and cyber services
           </div>
           <h1 className="mt-8 text-4xl font-bold tracking-tight text-white sm:text-6xl">
-            Empowering Your Digital <span className="text-primary">Journey</span> at navstAR
+            Your digital journey starts at <span className="text-primary">NAVSTAR DIGITAL HUB</span>
           </h1>
           <p className="mt-6 text-lg leading-8 text-slate-300">
-            From professional computer training to high-speed cyber services, navstAR DIGITAL HUB is your one-stop destination for all things tech.
+            Practical computer training, cyber services, and professional support for your next step.
           </p>
           <div className="mt-10 flex items-center gap-x-6">
             <Button asChild size="lg" className="rounded-full">
