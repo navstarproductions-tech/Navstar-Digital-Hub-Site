@@ -9,7 +9,7 @@ import { Toaster } from '@/components/ui/sonner';
 
 function App() {
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <div className="flex min-h-screen flex-col">
         <Navbar />
         <div className="flex-1">
