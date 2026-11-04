@@ -10,6 +10,7 @@ dns.setDefaultResultOrder("verbatim");
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: "/let-help-you-dashboard/",
   plugins: [
     react(),
     tailwindcss(),
