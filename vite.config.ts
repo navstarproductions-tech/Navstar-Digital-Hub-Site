@@ -10,7 +10,7 @@ dns.setDefaultResultOrder("verbatim");
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/Navstar-Digital-Hub-Site/",
+  base: process.env.CF_PAGES ? "/" : "/Navstar-Digital-Hub-Site/",
   plugins: [
     react(),
     tailwindcss(),

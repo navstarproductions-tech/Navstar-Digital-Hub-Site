@@ -9,8 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { INITIAL_COURSES } from '@/data/courses';
 import type { Course } from '@/types';
 
-const apiBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
-
 export function EnrollmentPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -21,9 +19,27 @@ export function EnrollmentPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const found = INITIAL_COURSES.find((item) => item.id === id);
-    if (found) setCourse(found);
-    else navigate('/courses', { replace: true });
+    let active = true;
+    const loadCourse = async () => {
+      try {
+        const response = await fetch('/api/courses');
+        if (response.ok) {
+          const result = await response.json() as { courses?: Course[] };
+          const found = result.courses?.find((item) => item.id === id);
+          if (found) {
+            if (active) setCourse(found);
+            return;
+          }
+        }
+      } catch {
+        // Fall back to the bundled catalog while the backend is unavailable.
+      }
+      const sampleCourse = INITIAL_COURSES.find((item) => item.id === id);
+      if (sampleCourse && active) setCourse(sampleCourse);
+      else if (active) navigate('/courses', { replace: true });
+    };
+    void loadCourse();
+    return () => { active = false; };
   }, [id, navigate]);
 
   const submitApplication = async (event: FormEvent<HTMLFormElement>) => {
@@ -37,15 +53,10 @@ export function EnrollmentPage() {
     }
     if (!course) return;
     setPhone(normalizedPhone);
-    if (!apiBase) {
-      setStatus('Preview only: the application was not sent or stored. Connect a secure school backend before collecting real student information.');
-      return;
-    }
-
     setLoading(true);
     setStatus('');
     try {
-      const response = await fetch(`${apiBase.replace(/\/$/, '')}/api/enrollments`, {
+      const response = await fetch('/api/enrollments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -55,8 +66,8 @@ export function EnrollmentPage() {
           courseTitle: course.title,
         }),
       });
-      if (!response.ok) throw new Error('The application could not be submitted. Please contact admissions.');
-      const result = await response.json() as { id?: string };
+      const result = await response.json() as { id?: string; error?: string };
+      if (!response.ok || !result.id) throw new Error(result.error ?? 'The application could not be submitted. Please contact admissions.');
       setRegistrationId(result.id ?? 'Submitted');
       setStatus('Application submitted securely. You can now request an M-Pesa payment prompt.');
       form.reset();
@@ -68,17 +79,18 @@ export function EnrollmentPage() {
   };
 
   const requestPayment = async () => {
-    if (!apiBase || !registrationId || !course) return;
+    if (!registrationId || !course) return;
     setLoading(true);
     setStatus('');
     try {
-      const response = await fetch(`${apiBase.replace(/\/$/, '')}/api/payments/stk-push`, {
+      const response = await fetch('/api/payments/stk-push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, amount: course.price, purpose: 'enrollment', reference: registrationId }),
       });
-      if (!response.ok) throw new Error('The payment prompt could not be requested. Please contact the school.');
-      setStatus('Payment prompt sent. Approve it on your phone. Payment status will update after provider confirmation.');
+      const result = await response.json() as { message?: string; error?: string };
+      if (!response.ok) throw new Error(result.error ?? 'The payment prompt could not be requested. Please contact the school.');
+      setStatus(result.message ?? 'Payment prompt sent. Approve it on your phone. Payment status will update after provider confirmation.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'The payment prompt could not be requested.');
     } finally {
@@ -143,13 +155,13 @@ export function EnrollmentPage() {
             <label className="flex items-start gap-3 border bg-white p-4 text-sm leading-6 text-slate-700"><input type="checkbox" name="consent" required className="mt-1 accent-emerald-800" /><span>I agree that admissions may contact me about this application and confirm that the information provided is accurate.</span></label>
             <Button className="w-full bg-emerald-800 hover:bg-emerald-900 sm:w-auto" type="submit" disabled={loading}>{loading ? 'Submitting…' : 'Submit application'}</Button>
             {status && <p role="status" className="border bg-white p-4 text-sm text-slate-700">{status}</p>}
-            {registrationId && <Card className="border-emerald-200"><CardHeader><CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-700" />Application received</CardTitle><CardDescription>Reference: {registrationId}</CardDescription></CardHeader><CardContent><Button type="button" className="bg-emerald-800 hover:bg-emerald-900" onClick={requestPayment} disabled={!apiBase || loading}>{apiBase ? 'Request M-Pesa prompt' : 'Payment backend required'}</Button></CardContent></Card>}
+            {registrationId && <Card className="border-emerald-200"><CardHeader><CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-700" />Application received</CardTitle><CardDescription>Reference: {registrationId}</CardDescription></CardHeader><CardContent><Button type="button" className="bg-emerald-800 hover:bg-emerald-900" onClick={requestPayment} disabled={loading}>Request M-Pesa prompt</Button></CardContent></Card>}
           </form>
 
           <aside className="space-y-4 lg:sticky lg:top-24">
             <Card><CardHeader><CardTitle className="text-lg">Application summary</CardTitle></CardHeader><CardContent className="space-y-4"><div className="aspect-video overflow-hidden bg-slate-100"><img src={course.image} alt={course.title} className="h-full w-full object-cover" /></div><div><h2 className="font-bold text-slate-950">{course.title}</h2><p className="mt-1 text-sm text-slate-500">{course.duration} · {course.category}</p></div><div className="flex justify-between border-t pt-4 text-sm"><span className="text-slate-600">Course fee</span><strong>KSh {course.price.toLocaleString()}</strong></div><p className="text-xs leading-5 text-slate-500">Fees are shown for planning. Payment is not marked received until the provider confirms it.</p></CardContent></Card>
             <div className="border-l-2 border-emerald-700 bg-white p-4 text-sm text-slate-700"><div className="flex items-center gap-2 font-semibold"><Smartphone className="h-4 w-4 text-emerald-800" />M-Pesa safety</div><p className="mt-2 leading-5">A prompt can only be sent by a configured secure backend. Enter your PIN only on the official prompt on your phone.</p></div>
-            <div className="flex items-start gap-2 text-xs leading-5 text-slate-500"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />Do not submit real identity details on this preview site until secure student records are connected.</div>
+            <div className="flex items-start gap-2 text-xs leading-5 text-slate-500"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />Application data is sent to the configured NAVSTAR admissions backend.</div>
             <div className="flex items-start gap-2 text-xs text-slate-500"><ShieldCheck className="h-4 w-4 shrink-0" />Student information must be stored server-side with access controls.</div>
           </aside>
         </div>

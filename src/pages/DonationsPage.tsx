@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const apiBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const amounts = [200, 500, 1000, 2500];
 
 export function DonationsPage() {
@@ -20,21 +19,24 @@ export function DonationsPage() {
       setMessage('Enter a valid Kenyan mobile number.');
       return;
     }
-    if (!apiBase) {
-      setMessage('Online donations are not connected yet. No payment prompt was sent.');
-      return;
-    }
-
     setLoading(true);
     setMessage('');
     try {
-      const response = await fetch(`${apiBase.replace(/\/$/, '')}/api/payments/stk-push`, {
+      const donationResponse = await fetch('/api/donations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normalizedPhone, amount, purpose: 'donation' }),
+        body: JSON.stringify({ phone: normalizedPhone, amount }),
       });
-      if (!response.ok) throw new Error('Payment prompt could not be started.');
-      setMessage('Prompt requested. Complete it on your phone, then wait for the payment confirmation.');
+      const donation = await donationResponse.json() as { id?: string; error?: string };
+      if (!donationResponse.ok || !donation.id) throw new Error(donation.error ?? 'Donation could not be registered.');
+      const response = await fetch('/api/payments/stk-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: normalizedPhone, amount, purpose: 'donation', reference: donation.id }),
+      });
+      const payment = await response.json() as { message?: string; error?: string };
+      if (!response.ok) throw new Error(payment.error ?? 'Payment prompt could not be started.');
+      setMessage(payment.message ?? 'Prompt requested. Approve it on your phone, then wait for confirmation.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Payment prompt could not be started.');
     } finally {

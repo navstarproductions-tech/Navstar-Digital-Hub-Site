@@ -5,12 +5,28 @@ import { INITIAL_COURSES } from '@/data/courses';
 import { Link } from 'react-router-dom';
 import { Clock, GraduationCap, Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { Course } from '@/types';
 
 export function CoursesPage() {
   const [search, setSearch] = useState('');
+  const [courses, setCourses] = useState(INITIAL_COURSES);
 
-  const filteredCourses = INITIAL_COURSES.filter(c => 
+  useEffect(() => {
+    let active = true;
+    fetch('/api/courses')
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json() as Promise<{ courses?: (Course & { status?: string })[] }>;
+      })
+      .then((result) => {
+        if (active && result?.courses?.length) setCourses(result.courses.filter((course) => course.status !== 'archived'));
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const filteredCourses = courses.filter(c =>
     c.title.toLowerCase().includes(search.toLowerCase()) || 
     c.description.toLowerCase().includes(search.toLowerCase())
   );

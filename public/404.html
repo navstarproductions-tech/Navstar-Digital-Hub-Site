@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
-      const basePath = "/Navstar-Digital-Hub-Site/";
       const currentPath = window.location.pathname;
+      const githubBasePath = "/Navstar-Digital-Hub-Site/";
+      const basePath = currentPath.startsWith(githubBasePath) ? githubBasePath : "/";
       const route = currentPath.startsWith(basePath)
-        ? currentPath.slice(basePath.length)
+        ? currentPath.slice(basePath === "/" ? 1 : basePath.length)
         : "";
       const requestedPath = `${route}${window.location.search}${window.location.hash}`;
       window.location.replace(`${basePath}?p=${encodeURIComponent(requestedPath)}`);

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BadgeCheck, BriefcaseBusiness, Cloud, FileText, MonitorCog, Printer, ShieldCheck, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,24 @@ const services = [
 ];
 
 export function ServicesPage() {
+  const [serviceList, setServiceList] = useState(services);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/services')
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json() as Promise<{ services?: { id: string; name: string; category: string; price: string }[] }>;
+      })
+      .then((result) => {
+        if (active && result?.services?.length) {
+          setServiceList(result.services.map((service) => ({ icon: MonitorCog, name: service.name, detail: service.price, category: service.category })));
+        }
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
   return (
     <main className="min-h-screen bg-slate-50">
       <section className="border-b bg-white">
@@ -27,7 +46,7 @@ export function ServicesPage() {
         </div>
       </section>
       <section className="container mx-auto grid gap-px bg-slate-200 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
-        {services.map(({ icon: Icon, name, detail, category }) => (
+        {serviceList.map(({ icon: Icon, name, detail, category }) => (
           <article key={name} className="bg-white p-6 sm:p-8">
             <div className="flex items-center justify-between">
               <span className="inline-flex h-11 w-11 items-center justify-center bg-emerald-50 text-emerald-800"><Icon className="h-5 w-5" /></span>

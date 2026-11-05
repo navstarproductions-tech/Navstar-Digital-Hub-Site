@@ -9,6 +9,8 @@ import { ServicesPage } from '@/pages/ServicesPage';
 import { DonationsPage } from '@/pages/DonationsPage';
 import { PortalsPage } from '@/pages/PortalsPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
+import { BootstrapPage } from '@/pages/BootstrapPage';
 import { Toaster } from '@/components/ui/sonner';
 
 function App() {
@@ -25,6 +27,8 @@ function App() {
             <Route path="/portals" element={<PortalsPage />} />
             <Route path="/portals/:role" element={<PortalsPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route path="/setup" element={<BootstrapPage />} />
             <Route path="/enroll/:id" element={<EnrollmentPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="*" element={<HomePage />} />

@@ -1,11 +1,24 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { INITIAL_COURSES } from '@/data/courses';
 import { Link } from 'react-router-dom';
 import { Clock, GraduationCap } from 'lucide-react';
+import type { Course } from '@/types';
 
 export function FeaturedCourses() {
+  const [courses, setCourses] = useState(INITIAL_COURSES);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/courses')
+      .then(async (response) => response.ok ? response.json() as Promise<{ courses?: Course[] }> : null)
+      .then((result) => { if (active && result?.courses?.length) setCourses(result.courses); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
   return (
     <section className="py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,14 +35,14 @@ export function FeaturedCourses() {
         </div>
 
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {INITIAL_COURSES.map((course) => (
+          {courses.slice(0, 4).map((course) => (
             <Card key={course.id} className="overflow-hidden group border-none shadow-sm hover:shadow-xl transition-all">
               <div className="relative aspect-[16/10] overflow-hidden">
-                <img
+                {course.image ? <img
                   src={course.image}
                   alt={course.title}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+                /> : <div className="flex h-full w-full items-center justify-center bg-emerald-50 text-emerald-800"><GraduationCap className="h-10 w-10" /></div>}
                 <div className="absolute top-4 left-4">
                   <Badge variant="secondary" className="bg-white/90 backdrop-blur-sm text-slate-900 border-none">
                     {course.category}
